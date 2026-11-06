@@ -1,0 +1,31 @@
+name: build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  dylib:
+    name: arm64 iOS dylib
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          set -e
+          xcodebuild -version
+          xcrun --sdk iphoneos clang -arch arm64 -target arm64-apple-ios16.0 \
+            -dynamiclib -O2 -fno-objc-arc -undefined dynamic_lookup \
+            -install_name /usr/lib/migfix.dylib \
+            -o migfix.dylib migfix.c
+          ls -l migfix.dylib
+          xcrun --sdk iphoneos llvm-otool -h migfix.dylib
+          xcrun --sdk iphoneos llvm-otool -L migfix.dylib || true
+          shasum -a 256 migfix.dylib
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: migfix
+          path: migfix.dylib
